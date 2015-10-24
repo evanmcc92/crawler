@@ -4,15 +4,15 @@
 
 ### Dependencies
 * mongo
-⋅⋅* Datebase
+  * Datebase
 * optparse
-⋅⋅* Command line option arguments
+  * Command line option arguments
 * net/http
-⋅⋅* Used to parse URLs and get HTML and HTTP code
+  * Used to parse URLs and get HTML and HTTP code
 * nokogiri
-⋅⋅* Used to parse HTML
+  * Used to parse HTML
 * digest
-⋅⋅* Used to create hash of HTML to find duplicates
+  * Used to create hash of HTML to find duplicates
 
 ### Commands
 * -s or --starturl -> Start URL (Including http(s)://)
