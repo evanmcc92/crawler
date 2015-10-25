@@ -15,6 +15,7 @@
   * Used to create hash of HTML to find duplicates
 
 ### Commands
+> -s or -i are required
 * -s or --starturl -> Start URL (Including http(s)://)
 * -i or --id -> Crawler ID
 * -d or --debug -> Debug (enter 1 for yes, 0 for no)
