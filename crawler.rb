@@ -17,7 +17,7 @@ PROGRAM_VERSION = "0.1.0.0"
 #scrapes url for crawl results and queue
 def scrapePage(url, domain, projectid, db)
 	# set results array
-	puts "\n\nPage Start: #{url} - #{Time.now.getutc}\n"
+	puts "\nPage Start: #{url} - #{Time.now.getutc}\n"
 	@pageresult = {
 		:_projectid => projectid,
 		:title => "",
@@ -26,7 +26,7 @@ def scrapePage(url, domain, projectid, db)
 		:http_code => ""
 	}
 
-	if url.host == domain
+	if URI(url).host == domain
 		html = fetch_html(url, 1)
 		@pageresult[:http_code] = html[:http_code]
 
@@ -44,30 +44,41 @@ def scrapePage(url, domain, projectid, db)
 		@links = {}
 		for link in parser.css("a")
 			href = link['href']
-			if domain == URI(href).host
-				@links[href] = 1 #onsite
-			else
-				@links[href] = 0 #offsite
+			if URI(href).host.nil? == false
+				if domain == URI(href).host
+					@links[href] = 1 #onsite
+				else
+					@links[href] = 0 #offsite
+				end
 			end
 		end
 		if @links.count > 0
 			puts "\t#{@links.count} links to found- #{Time.now.getutc}\n"
-			insertQueueLinks(@links, projectid, db)
+			insertQueueLinks(url, @links, projectid, db)
 		end
 		
 	end
 
 	@pageresult[:created_at] = Time.now.getutc
-	puts "Page End: #{url} - #{Time.now.getutc}\n\n"
+	puts "Page End: #{url} - #{Time.now.getutc}\n"
 	return @pageresult
 end
 # adds links to queue
-def insertQueueLinks(links, projectid, db)
-	inserthash  = []
+def insertQueueLinks(page_found, links, projectid, db)
+	linksarray  = []
+	queuearray  = []
 	counter = 0
 	links.each do |key, value|
 		# if db[:queue].count({ :link => key, _projectid: projectid }) == 0
-			inserthash << {
+			linksarray << {
+				_projectid: projectid,
+				onsite: value,
+				link: key,
+				page_found: page_found.to_s,
+				created_at: Time.now.getutc,
+				updated_at: Time.now.getutc,
+			}
+			queuearray << {
 				_projectid: projectid,
 				onsite: value,
 				link: key,
@@ -79,8 +90,14 @@ def insertQueueLinks(links, projectid, db)
 		# end
 	end
 
-	insert = db[:queue].insert_many(inserthash)
-	puts "\t#{insert.n} links to enter- #{Time.now.getutc}\n"
+	begin
+		insertlinks = db[:links].insert_many(linksarray)
+		insertqueue = db[:queue].insert_many(queuearray,{ordered:false})
+	rescue => ex
+		p ex
+	end
+	puts "\t#{links.count} links to found - #{Time.now.getutc}\n"
+
 end
 # get data from url
 def fetch_html(uri_str, limit = 10)
@@ -172,23 +189,29 @@ else
 			# updated_at: Time.now.getutc,
 			crawled: 0,
 		})
-		@pageresults = scrapePage(URI(options[:start_url]), domain, projectid, db)
+		@pageresults = scrapePage(options[:start_url], domain, projectid, db)
 		insert = resultsdb.insert_one(@pageresult)
-		db[:queue].find({ :link => options[:start_url], _projectid: projectid }).update_one({ "$inc" => { :crawled => 1 }})
+		db[:queue].update_one({ :link => options[:start_url], _projectid: projectid }, { :$inc => { :crawled => 1 } }, { :upsert => true })
 	end
 
+
 	# loop through queue until there is nothing left
-	while db[:queue].count(_projectid: projectid, onsite: 1, crawled: 0) > 0
-		db[:queue].find(_projectid: projectid, onsite: 1, crawled: 0).limit(100).each do |document|
-			@pageresults = scrapePage(URI(document[:link]), domain, projectid, db)
+	counter = db[:queue].distinct(:link, {_projectid: projectid, onsite: 1, crawled: 0}).count
+	while counter > 0
+		puts "#{counter} Links in queue - #{Time.now}\n"
+		@links = db[:queue].distinct(:link, {_projectid: projectid, onsite: 1, crawled: 0}, {:limit => 100})
+		@links.each do |document|
+			@pageresults = scrapePage(document, domain, projectid, db)
 			insert = resultsdb.insert_one(@pageresult)
-			db[:queue].find({ :link => document[:link], _projectid: projectid }).update_one({ "$inc" => { :crawled => 1 }})
+			db[:queue].update_one({ :link => options[:start_url], _projectid: projectid }, { :$inc => { :crawled => 1 } }, { :upsert => true })
 		end
+		counter = db[:queue].distinct(:link, {_projectid: projectid, onsite: 1, crawled: 0}).count
 	end
 
 end
 
 
+abort("*****COMPLETE*****")
 ####################
 ## end of program ##
 ####################
