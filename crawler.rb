@@ -104,7 +104,7 @@ def fetch_html(uri_str, limit = 10)
 	# You should choose a better exception.
 	raise ArgumentError, 'too many HTTP redirects' if limit == 0
 
-	response = Net::HTTP.get_response(URI(uri_str))
+	response = Net::HTTP.get(URI(uri_str))
 
 	case response
 	when Net::HTTPSuccess then
