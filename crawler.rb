@@ -46,11 +46,14 @@ def scrapePage(url, domain, projectid, db)
 		@links = {}
 		for link in parser.css("a")
 			href = link['href']
-			if URI(href).host.nil? == false
-				if domain == URI(href).host
-					@links[href] = 1 #onsite
-				else
-					@links[href] = 0 #offsite
+
+			if href.nil? == false
+				if URI(href).host.nil? == false
+					if domain == URI(href).host
+						@links[href] = 1 #onsite
+					else
+						@links[href] = 0 #offsite
+					end
 				end
 			end
 		end
@@ -103,7 +106,6 @@ def insertQueueLinks(page_found, links, projectid, db)
 end
 # get data from url
 def fetch_html(url, limit = 10)
-	puts limit
 	# You should choose a better exception.
 	raise ArgumentError, 'too many HTTP redirects' if limit == 0
 
