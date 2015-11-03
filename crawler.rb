@@ -100,11 +100,18 @@ def insertQueueLinks(page_found, links, projectid, db)
 
 end
 # get data from url
-def fetch_html(uri_str, limit = 10)
+def fetch_html(url, limit = 10)
 	# You should choose a better exception.
 	raise ArgumentError, 'too many HTTP redirects' if limit == 0
 
-	response = Net::HTTP.get(URI(uri_str))
+	uri = URI.parse(url)
+	http = Net::HTTP.new(uri.host, uri.port)
+	# gets https sites
+	http.use_ssl = true
+	http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+	req = Net::HTTP::Get.new(uri.request_uri, {'User-Agent' => 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'})
+	response = http.request(req)
 
 	case response
 	when Net::HTTPSuccess then
@@ -215,6 +222,3 @@ abort("*****COMPLETE*****")
 ####################
 ## end of program ##
 ####################
-
-
-
