@@ -46,10 +46,12 @@ def scrapePage(url, domain, projectid, db)
 		@links = {}
 		for link in parser.css("a")
 			href = link['href']
-
+			# puts "'#{href}'"
+			# puts "#{URI(href).host}\n"
 			if href.nil? == false
-				if URI(href).host.nil? == false
-					if domain == URI(href).host
+				safeurl = URI.encode(href.strip)
+				if URI(safeurl).host.nil? == false
+					if domain == URI(safeurl).host
 						@links[href] = 1 #onsite
 					else
 						@links[href] = 0 #offsite
