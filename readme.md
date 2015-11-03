@@ -3,16 +3,18 @@
 ## Created by Evan McCullough
 
 ### Dependencies
-* mongo
+* gem mongo
   * Datebase
-* optparse
+* gem optparse
   * Command line option arguments
-* net/http
+* gem net/http
   * Used to parse URLs and get HTML and HTTP code
-* nokogiri
+* gem nokogiri
   * Used to parse HTML
-* digest
+* gem digest
   * Used to create hash of HTML to find duplicates
+* yml crawler config
+  * mongo database information
 
 ### Commands
 > -s or -i is required
