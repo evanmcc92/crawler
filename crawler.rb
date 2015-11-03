@@ -4,6 +4,8 @@ require 'optparse' #command line arguments
 require 'net/http' #get html
 require 'nokogiri' #scrape html for things
 require 'digest' # hashing
+require 'yaml' # parse yaml
+config = YAML.load_file('crawler-config.yml') # loading config info for database
 
 PROGRAM_NAME = "Crawler"
 PROGRAM_AUTHOR = "Evan McCullough"
@@ -163,10 +165,19 @@ optparse = OptionParser.new do |opts|
 end.parse!
 
 options[:debug] = options[:debug].to_i
+
+puts "################################
+  #{PROGRAM_NAME} v#{PROGRAM_VERSION}
+################################
+  ProjectID\t\t#{options[:id]}
+  Start URL\t\t#{options[:start_url]}
+  Debug\t\t\t#{options[:debug]}
+################################"
+
 if (defined?(options[:start_url])).nil? || (defined?(options[:id])).nil?
 	abort("**Error: A start url or project id was not supplied\n\n")
 else
-	db = Mongo::Client.new([ 'ds033153.mongolab.com:33153' ], :database => 'crawl', :user => 'crawler', :password => 'evan6992')
+	db = Mongo::Client.new([ config['database']['server'] ], :database => config['database']['database'], :user => config['database']['user'], :password => config['database']['password'])
 	projectdb = db[:project]
 	resultsdb = db[:results]
 
@@ -176,16 +187,23 @@ else
 		puts "Selecting project with id of '#{projectid}'\n" if options[:debug] == 1
 		abort("**Error: project '#{projectid}' does not exist") if projectdb.count(_id: projectid) == 0
 	elsif options[:start_url].nil? == false
+		
+
+
 		# if start_url is defined
 		puts "Creating project with start url '#{options[:start_url]}'\n" if options[:debug] == 1
 		domain = URI(options[:start_url]).host
 		projectid = getNextSequence("project", db)
+
+		puts "Project ID of '#{projectid}'\n"
+
 		insert = projectdb.insert_one({
 			_id: projectid,
 			_version: PROGRAM_VERSION,
 			start_url: options[:start_url],
 			domain: domain,
 		})
+
 
 
 		db[:queue].insert_one({
