@@ -29,7 +29,7 @@ def scrapePage(url, domain, projectid, db)
 	}
 
 	if URI(url).host == domain
-		html = fetch_html(url, 1)
+		html = fetch_html(url)
 		@pageresult[:http_code] = html[:http_code]
 
 		#page hash
@@ -103,6 +103,7 @@ def insertQueueLinks(page_found, links, projectid, db)
 end
 # get data from url
 def fetch_html(url, limit = 10)
+	puts limit
 	# You should choose a better exception.
 	raise ArgumentError, 'too many HTTP redirects' if limit == 0
 
@@ -121,13 +122,13 @@ def fetch_html(url, limit = 10)
 			:body=>response.body,
 			:http_code=>response.code,
 		}
-		return @return
 	when Net::HTTPRedirection then
 		location = response['location']
 		warn "redirected to #{location}"
-		fetch(location, limit - 1)
+		newlimit = limit - 1
+		fetch_html(location, newlimit)
 	else
-		response.value
+		response.error!
 	end
 end
 # gets the next auto increment from database
