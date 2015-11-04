@@ -9,7 +9,7 @@ config = YAML.load_file('crawler-config.yml') # loading config info for database
 
 PROGRAM_NAME = "Crawler"
 PROGRAM_AUTHOR = "Evan McCullough"
-PROGRAM_VERSION = "0.1.0.0"
+PROGRAM_VERSION = "0.1.1.0"
 
 
 ########################
@@ -25,7 +25,8 @@ def scrapePage(url, domain, projectid, db)
 		:title => "",
 		:h1 => "",
 		:page_hash => "",
-		:http_code => ""
+		:http_code => "",
+		:url => url
 	}
 
 	if URI(url).host == domain
@@ -48,7 +49,7 @@ def scrapePage(url, domain, projectid, db)
 			href = link['href']
 			# puts "'#{href}'"
 			# puts "#{URI(href).host}\n"
-			if href.nil? == false
+			if href.nil? == false && href =~ /\A#{URI::regexp(['http', 'https'])}\z/
 				safeurl = URI.encode(href.strip)
 				if URI(safeurl).host.nil? == false
 					if domain == URI(safeurl).host
@@ -113,9 +114,11 @@ def fetch_html(url, limit = 10)
 
 	uri = URI.parse(url)
 	http = Net::HTTP.new(uri.host, uri.port)
-	# gets https sites
-	http.use_ssl = true
-	http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+	if uri.scheme == "https"
+		# gets https sites
+		http.use_ssl = true
+		http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+	end
 
 	req = Net::HTTP::Get.new(uri.request_uri, {'User-Agent' => 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'})
 	response = http.request(req)
