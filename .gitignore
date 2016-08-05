@@ -1,2 +1,3 @@
 crawler-config.yml
 *.log
+Gemfile.lock

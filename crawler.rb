@@ -1,15 +1,15 @@
 require 'mongo' #database
-Mongo::Logger.logger.level = ::Logger::FATAL # only ebug on fatal error
 require 'optparse' #command line arguments
 require 'net/http' #get html
 require 'nokogiri' #scrape html for things
 require 'digest' # hashing
 require 'yaml' # parse yaml
-config = YAML.load_file('crawler-config.yml') # loading config info for database
+
+Mongo::Logger.logger.level = ::Logger::FATAL # only ebug on fatal error
 
 PROGRAM_NAME = "Crawler"
 PROGRAM_AUTHOR = "Evan McCullough"
-PROGRAM_VERSION = "0.1.1.0"
+PROGRAM_VERSION = "0.2.0"
 
 
 ########################
@@ -37,7 +37,6 @@ def scrapePage(url, domain, projectid, db)
 		page_hash = Digest::MD5.new
 		page_hash.update html[:body]
 		@pageresult[:page_hash] = page_hash.hexdigest
-
 
 		#parse page
 		parser = Nokogiri::HTML(html[:body])
@@ -166,13 +165,18 @@ optparse = OptionParser.new do |opts|
 	opts.on('-s', '--starturl NAME', 'Start URL (Including http(s)://)') { |v| options[:start_url] = v }
 	opts.on('-i', '--id ID', 'Crawler ID') { |v| options[:id] = v }
 	opts.on('-d', '--debug DEBUG', 'Debug (enter 1 for yes, 0 for no') { |v| options[:debug] = v }
+	opts.on('-c', '--config FILENAME', 'Path to Config File (e.g. /path/to/config.yml)') { |v| options[:config_file] = v }
 	opts.on("-v", "--version", "Show version information about this program and quit.") do
 		puts "#{PROGRAM_NAME}\nv#{PROGRAM_VERSION}\nby: #{PROGRAM_AUTHOR}"
 		exit
 	end
 end.parse!
 
+CONFIG_FILE = options[:config_file].nil? ? 'config.yml': options[:config_file]
+config = YAML.load_file(CONFIG_FILE) # loading config info for database
 options[:debug] = options[:debug].to_i
+
+
 
 puts "################################
   #{PROGRAM_NAME} v#{PROGRAM_VERSION}
@@ -185,7 +189,12 @@ puts "################################
 if (defined?(options[:start_url])).nil? || (defined?(options[:id])).nil?
 	abort("**Error: A start url or project id was not supplied\n\n")
 else
-	db = Mongo::Client.new([ config['database']['server'] ], :database => config['database']['database'], :user => config['database']['user'], :password => config['database']['password'])
+	db = Mongo::Client.new([
+		config['database']['server'] ],
+		:database => config['database']['database'],
+		:user => config['database']['user'],
+		:password => config['database']['password']
+	)
 	projectdb = db[:project]
 	resultsdb = db[:results]
 
@@ -195,9 +204,6 @@ else
 		puts "Selecting project with id of '#{projectid}'\n" if options[:debug] == 1
 		abort("**Error: project '#{projectid}' does not exist") if projectdb.count(_id: projectid) == 0
 	elsif options[:start_url].nil? == false
-		
-
-
 		# if start_url is defined
 		puts "Creating project with start url '#{options[:start_url]}'\n" if options[:debug] == 1
 		domain = URI(options[:start_url]).host
@@ -211,8 +217,6 @@ else
 			start_url: options[:start_url],
 			domain: domain,
 		})
-
-
 
 		db[:queue].insert_one({
 			_projectid: projectid,
